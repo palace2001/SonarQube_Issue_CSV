@@ -21,9 +21,24 @@ import csv
 import requests
 
 
+
+MAX_PAGE_SIZE = 500
+
 def getIssueFromSonar(URL):
     data = requests.get(URL).json()
-    return data['issues']
+    total = int(data['total'])
+    print('# total issues : ', total)
+
+    if total > MAX_PAGE_SIZE:
+        data = []
+        for pn in range(1, int(total/MAX_PAGE_SIZE) + 2):
+            multiURL = URL +'&p=' + str(pn)
+            data += (requests.get(multiURL).json())['issues']
+
+    else:
+        data = data['issues']
+
+    return data
 
 def makeCSVFromJson(issueJson, fileName):
     csvFile = open(file=fileName, mode='w', newline='')
@@ -60,6 +75,6 @@ if __name__ == "__main__":
     sonarQubeIP = input('SonarQube IP : ')
     sonarQubeURL = 'http://' + sonarQubeIP + ':9000'
     projectKey = input('Project Key : ')
-    requestIssueURL = sonarQubeURL + '/api/issues/search?componentKeys=' + projectKey
+    requestIssueURL = sonarQubeURL + '/api/issues/search?componentKeys=' + projectKey + '&ps=' + str(MAX_PAGE_SIZE)
     issueJson = getIssueFromSonar(requestIssueURL)
     makeCSVFromJson(issueJson, projectKey + '.csv')
